@@ -10,7 +10,7 @@
     "additionalProperties": false
   },
   "program": {
-    "image": ""image": "ghcr.io/1maxon1/tau-dec:latest",
+    "image": "ghcr.io/1maxon1/tau-dec:latest",
     "entrypoint": [
       "python", "src/server.py",
       "--host", "0.0.0.0",
