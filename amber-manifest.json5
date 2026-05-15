@@ -10,9 +10,9 @@
     "additionalProperties": false
   },
   "program": {
-   "image": "ghcr.io/1maxon1/tau-dec:v1.0.3",
+    "image": "ghcr.io/1maxon1/tau-dec:latest",
     "entrypoint": [
-      "python", "src/server.py",
+      "uv", "run", "src/server.py",
       "--host", "0.0.0.0",
       "--port", "9019"
     ],
