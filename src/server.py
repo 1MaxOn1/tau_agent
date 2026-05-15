@@ -1,59 +1,70 @@
 import argparse
-import uvicorn
+import os
+import sys
 
+# Allow imports from src/ when running directly
+sys.path.insert(0, os.path.dirname(__file__))
+
+import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
-from a2a.types import (
-    AgentCapabilities,
-    AgentCard,
-    AgentSkill,
-)
+from a2a.types import AgentCapabilities, AgentCard, AgentSkill
 
 from executor import Executor
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the A2A agent.")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind the server")
-    parser.add_argument("--port", type=int, default=9009, help="Port to bind the server")
-    parser.add_argument("--card-url", type=str, help="URL to advertise in the agent card")
+    parser = argparse.ArgumentParser(description="tau2-bench customer service purple agent")
+    parser.add_argument("--host", type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=9019)
+    parser.add_argument("--card-url", type=str, help="Public URL for agent card")
+    parser.add_argument("--model", type=str, default="gpt-4o-mini", help="OpenAI model to use")
     args = parser.parse_args()
 
-    # Fill in your agent card
-    # See: https://a2a-protocol.org/latest/tutorials/python/3-agent-skills-and-card/
-    
+    os.environ.setdefault("AGENT_MODEL", args.model)
+
     skill = AgentSkill(
-        id="tau2-evaluation",
-        name="Tau2 Benchmark Evaluation",
-        description="Evaluates agents on tau-bench tasks (airline, retail domains)",
-        tags=["benchmark", "evaluation", "tau2"],
-        examples=[
-            '{"participants": {"agent": "http://localhost:9019"}, "config": {"domain": "airline", "num_tasks": 4}}'
-        ]
+        id="task_fulfillment",
+        name="Task Fulfillment",
+        description=(
+            "Customer service agent for tau2-bench evaluation. "
+            "Handles telecom, airline, retail and other service domains. "
+            "Uses tools and responds to users following provided policy."
+        ),
+        tags=["benchmark", "tau2", "customer-service"],
+        examples=[],
     )
 
     agent_card = AgentCard(
-        name="Tau2 Evaluator",
-        description="Tau2 benchmark evaluator - tests agents on customer service tasks",
+        name="tau2_agent",
+        description="Customer service agent for tau2-bench evaluation",
         url=args.card_url or f"http://{args.host}:{args.port}/",
-        version='1.0.0',
-        default_input_modes=['text'],
-        default_output_modes=['text'],
+        version="1.0.0",
+        default_input_modes=["text"],
+        default_output_modes=["text", "data"],
         capabilities=AgentCapabilities(streaming=True),
-        skills=[skill]
+        skills=[skill],
     )
 
     request_handler = DefaultRequestHandler(
         agent_executor=Executor(),
         task_store=InMemoryTaskStore(),
     )
-    server = A2AStarletteApplication(
+
+    app = A2AStarletteApplication(
         agent_card=agent_card,
         http_handler=request_handler,
     )
-    uvicorn.run(server.build(), host=args.host, port=args.port)
+
+    print(f"Starting tau2 agent on {args.host}:{args.port} | model={os.environ['AGENT_MODEL']}")
+    uvicorn.run(
+        app.build(),
+        host=args.host,
+        port=args.port,
+        timeout_keep_alive=600,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
